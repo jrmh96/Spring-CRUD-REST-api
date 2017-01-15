@@ -1,6 +1,9 @@
 package com.hr.web;
 
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -12,10 +15,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.stereotype.Controller;
 
 import com.hr.dto.DepartmentDTO;
 import com.hr.dto.EmployeeDTO;
+import com.hr.dto.ReturnMessage;
 import com.hr.dto.JobDTO;
 import com.hr.dto.UserDTO;
 import com.hr.dto.UserSessionBean;
@@ -30,7 +35,7 @@ import com.hr.service.UserService;
 import com.google.common.collect.Lists;
 import com.google.gson.Gson;
 
-@Controller
+@RestController
 public class HrController {
 	@Autowired
 	private EmployeeService employeeService;
@@ -43,36 +48,11 @@ public class HrController {
 	@Autowired
 	private UserSessionBean currentUser;
 	
-	@RequestMapping(value="/login")
-	String login(Model model){
-		return "login";
-	}
-	
-	@RequestMapping("/checklogin")
-	String checkLogin(@ModelAttribute("user") UserDTO current, BindingResult b, Model model) throws ParseException{
-		//try to return a user dto object given the password and username
-		UserDTO newDTO = UserService.getUser(current.getUsername(), current.getPassword());
-		if(newDTO != null){
-			this.currentUser.setUsername(current.getUsername());
-			this.currentUser.setPassword(current.getPassword());
-			return "redirect:/datatable-test"; //table
-		}
-		
-		else{
-			return "login";
-		}
-		
-	}
 	
 	@ModelAttribute("user")
 	 public UserDTO getUserDto() {
 		 return new UserDTO();
 	 }
-	
-	@RequestMapping("/")
-	String index(Model model){
-		return "redirect:/datatable-test";
-	}
 	
 	@RequestMapping("/datatable-test")
 	String read(Model model){
@@ -80,7 +60,6 @@ public class HrController {
 	}
 	
 	@RequestMapping("/getAll")
-	@ResponseBody
 	public String getAllEmployees(){
 		List<EmployeeDTO> list = Lists.newArrayList();
 		for(Employees e : employeeService.getAll()){
@@ -123,7 +102,8 @@ public class HrController {
 	//after user enters info about new employee, data transferred here to be created
 	//@ModelAttribute(employee) = th:object=${employee}
 	@RequestMapping("/create")
-	String createNew(@ModelAttribute("employee") EmployeeDTO employee, BindingResult bindingResult, Model model) throws ParseException{
+	ReturnMessage createNew(@ModelAttribute("employee") EmployeeDTO employee, BindingResult bindingResult, Model model) throws ParseException{
+		ReturnMessage r = new ReturnMessage();
 		
 		Employees toSave = new Employees();
 		Job j = new Job();
@@ -144,7 +124,26 @@ public class HrController {
 		toSave.setPhoneNumber(employee.getPhoneNumber());
 		
 		this.employeeService.saveOrUpdate(toSave);
-		return "redirect:/datatable-test";
+		r.setEmpList(toDTO(this.employeeService.getAll()));
+		r.setMessage("create successful");
+		return r;
+	}
+	
+	private List<EmployeeDTO> toDTO(List<Employees> e){
+		List<EmployeeDTO> a = new ArrayList<EmployeeDTO>();
+		for(Employees b : e){
+			EmployeeDTO c = new EmployeeDTO();
+			c.setFirstName(b.getFirstName());
+			c.setLastName(b.getLastName());
+			c.setEmail(b.getEmail());
+			c.setDepartmentID(b.getDepartment().getDepartmentId());
+			c.setPhoneNumber(b.getPhoneNumber());
+			c.setHireDate(b.getHireDate());
+			c.setJobID(b.getJob().getJobID());
+			c.setCommissionPercent(b.getCommissionPercent());
+			a.add(c);
+		}
+		return a;
 	}
 	
 	@RequestMapping("/update")
@@ -176,9 +175,12 @@ public class HrController {
 	}
 	
 	@RequestMapping("/update-save")
-	String updateSave(@ModelAttribute("employee") EmployeeDTO dto, BindingResult b, Model model) throws ParseException{
+	ReturnMessage updateSave(@ModelAttribute("employee") EmployeeDTO dto, BindingResult b, Model model) throws ParseException{
 		createAndSave(dto);
-		return "datatable-test";
+		ReturnMessage r = new ReturnMessage();
+		r.setEmpList(toDTO(this.employeeService.getAll()));
+		r.setMessage("List Updated");
+		return r;
 	}
 	
 	private void createAndSave(EmployeeDTO emp) throws ParseException{
@@ -203,9 +205,12 @@ public class HrController {
 	}
 	
 	@RequestMapping("/delete")
-	String delete(@RequestParam("id") Long ID){
+	ReturnMessage delete(@RequestParam("id") Long ID){
 		this.employeeService.deleteEmployee(ID);
-		return "redirect:/datatable-test";
+		ReturnMessage r = new ReturnMessage();
+		r.setEmpList(toDTO(this.employeeService.getAll()));
+		r.setMessage("Deleted");
+		return r;
 	}
 	
 	@RequestMapping("/logout")
