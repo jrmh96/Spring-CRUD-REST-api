@@ -1,7 +1,5 @@
 package com.hr.web;
 
-import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
-
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -47,8 +45,7 @@ public class HrController {
 	private UserService UserService;
 	@Autowired
 	private UserSessionBean currentUser;
-	
-	
+		
 	@ModelAttribute("user")
 	 public UserDTO getUserDto() {
 		 return new UserDTO();
@@ -59,6 +56,7 @@ public class HrController {
 		return "datatable-test";
 	}
 	
+	//R
 	@RequestMapping("/getAll")
 	public String getAllEmployees(){
 		List<EmployeeDTO> list = Lists.newArrayList();
@@ -102,8 +100,10 @@ public class HrController {
 	//after user enters info about new employee, data transferred here to be created
 	//@ModelAttribute(employee) = th:object=${employee}
 	@RequestMapping("/create")
-	ReturnMessage createNew(@ModelAttribute("employee") EmployeeDTO employee, BindingResult bindingResult, Model model) throws ParseException{
+	ReturnMessage createNew(@RequestParam("employee") String emp) throws ParseException{
 		ReturnMessage r = new ReturnMessage();
+		
+		EmployeeDTO employee = new EmployeeDTO();
 		
 		Employees toSave = new Employees();
 		Job j = new Job();
@@ -113,8 +113,8 @@ public class HrController {
 		j.setJobTitle(employee.getJobTitle());
 		j.setMaxSalary(dto.getMaxSalary());
 		j.setMinSalary(dto.getMinSalary());
-		
-		toSave.setEmail("PIKACHU");
+				
+		toSave.setEmail(employee.getFirstName()+employee.getLastName());
 		toSave.setHireDate(new Date());
 		toSave.setFirstName(employee.getFirstName());
 		toSave.setLastName(employee.getLastName());
@@ -205,12 +205,13 @@ public class HrController {
 	}
 	
 	@RequestMapping("/delete")
-	ReturnMessage delete(@RequestParam("id") Long ID){
+	String delete(@RequestParam("id") Long ID){
 		this.employeeService.deleteEmployee(ID);
 		ReturnMessage r = new ReturnMessage();
 		r.setEmpList(toDTO(this.employeeService.getAll()));
 		r.setMessage("Deleted");
-		return r;
+		String jsonString = new Gson().toJson(r.getEmpList());
+		return jsonString;
 	}
 	
 	@RequestMapping("/logout")
