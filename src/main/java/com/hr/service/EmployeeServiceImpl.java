@@ -44,7 +44,7 @@ public class EmployeeServiceImpl implements EmployeeService{
 
 	@Override
 	@Transactional
-	public void deleteEmployee(Long ID) {
+	public void deleteEmployee(Long ID) throws Exception{
 		//  Auto-generated method stub
 		if(ID==null){
 			System.out.println("ID is null");
@@ -55,7 +55,7 @@ public class EmployeeServiceImpl implements EmployeeService{
 
 	@Override
 	@Transactional
-	public Employees saveOrUpdate(Employees e) {
+	public Employees saveOrUpdate(Employees e) throws Exception{
 		return empRepo.save(e);
 	}
 	

@@ -21,6 +21,8 @@ public class MiscDao {
 	
 	private static final String GET_JOB_BY_ID = "SELECT JOB_ID, JOB_TITLE, MIN_SALARY, MAX_SALARY FROM hr.JOBS where job_id = ?";
 	
+	private static final String GET_JOB_BY_TITLE = "SELECT JOB_ID, JOB_TITLE, MIN_SALARY, MAX_SALARY FROM hr.JOBS where job_title = ?";
+	
 	@Autowired
 	private JdbcTemplate jdbc;
 	
@@ -48,5 +50,13 @@ public class MiscDao {
 			return null;
 		}
 		return a.get(0);
+	}
+	
+	public JobDTO getJobByTitle(String title){
+		List<JobDTO> j = jdbc.query(GET_JOB_BY_TITLE, new Object[] {title}, new JobRowMapper());
+		if(j.isEmpty()){
+			return null;
+		}
+		return j.get(0);
 	}
 }

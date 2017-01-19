@@ -4,11 +4,13 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -41,24 +43,46 @@ public class HrController {
 	private MiscService misc;
 	@Autowired
 	private DepartmentService deptServ;
-	@Autowired
-	private UserService UserService;
-	@Autowired
-	private UserSessionBean currentUser;
-		
-	@ModelAttribute("user")
-	 public UserDTO getUserDto() {
-		 return new UserDTO();
-	 }
 	
-	@RequestMapping("/datatable-test")
-	String read(Model model){
-		return "datatable-test";
+	//Create
+	@RequestMapping(value="/create", method=RequestMethod.POST, produces="application/json", consumes="application/json")
+	public Object create(@RequestBody Map<String, Object> map){
+		ReturnMessage r = new ReturnMessage();
+		Job j = new Job();
+		Employees e = new Employees();
+		JobDTO job = misc.getJobByTitle((String) map.get("job"));
+		
+		j.setJobID(job.getJobID());
+		j.setJobTitle(job.getJobTitle());
+		j.setMaxSalary(job.getMaxSalary());
+		j.setMinSalary(job.getMinSalary());
+		
+		e.setFirstName((String) map.get("firstName"));
+		e.setLastName((String) map.get("lastName"));
+		String email = (String) (map.get("firstName").toString().substring(0, 1).toUpperCase() + map.get("lastName").toString().toUpperCase());
+		e.setEmail(email);
+		e.setPhoneNumber((String) map.get("phone"));
+		e.setHireDate(new Date());
+		Long f = ((Integer) map.get("departmentID")).longValue();
+		e.setDepartment(this.deptServ.getOne(f));
+		e.setJob(j);
+		
+		try{
+			this.employeeService.saveOrUpdate(e);
+			ArrayList<EmployeeDTO> a = new ArrayList<EmployeeDTO>();
+			a.add(toDTO(e));
+			r.setEmpList(a);
+			r.setMessage("Success");
+		}catch (Exception ex){
+			ex.printStackTrace();
+			r.setMessage("Failed");
+		}
+		return r;
 	}
 	
-	//R
-	@RequestMapping("/getAll")
-	public String getAllEmployees(){
+	//Read
+	@RequestMapping(value="/getAll", produces="application/json")
+	public Object getAll(){
 		List<EmployeeDTO> list = Lists.newArrayList();
 		for(Employees e : employeeService.getAll()){
 			EmployeeDTO edto = new EmployeeDTO();
@@ -72,153 +96,73 @@ public class HrController {
 				edto.setLastName(e.getLastName());
 				edto.setJobTitle(e.getJob().getJobTitle());
 				edto.setID(e.getEmployeeId());
-				edto.setDeleteLink("<a href='/delete?id=" + edto.getID()+ "' " 
-				+"class='btn btn-danger'>Delete</a>");
-				edto.setUpdateLink("<a href='/update?id=" + edto.getID()+ "' "
-						+ "class='btn btn-success'>Update</a>");
 				list.add(edto);
 		}
-		
 		String jsonString = new Gson().toJson(list);
 		return jsonString;
 	}
 	
-	@RequestMapping("/create-new")
-	String create(Model model){
-		//add jobs, and departments
-		List<JobDTO> j = misc.getJobs();
-		List<DepartmentDTO> d = deptServ.getDepartments();
-		model.addAttribute("jobs", j);
-		model.addAttribute("departments", d);
-		return "create-new";
-	}
-	
-	@ModelAttribute("employee")
-	public EmployeeDTO initEmployee(){
-		return new EmployeeDTO();
-	}
-	//after user enters info about new employee, data transferred here to be created
-	//@ModelAttribute(employee) = th:object=${employee}
-	@RequestMapping("/create")
-	ReturnMessage createNew(@RequestParam("employee") String emp) throws ParseException{
+	//Update
+	@RequestMapping(value="/update", method=RequestMethod.POST, produces="application/json", consumes="application/json")
+	public Object update(@RequestBody Map<String, Object> map){
 		ReturnMessage r = new ReturnMessage();
+		Long id = ((Integer) map.get("id")).longValue();
+		Employees e = this.employeeService.getbyID(id);
 		
-		EmployeeDTO employee = new EmployeeDTO();
-		
-		Employees toSave = new Employees();
-		Job j = new Job();
-		JobDTO dto = misc.getJobDTOByID(employee.getJobID());
-		
-		j.setJobID(employee.getJobID());
-		j.setJobTitle(employee.getJobTitle());
-		j.setMaxSalary(dto.getMaxSalary());
-		j.setMinSalary(dto.getMinSalary());
-				
-		toSave.setEmail(employee.getFirstName()+employee.getLastName());
-		toSave.setHireDate(new Date());
-		toSave.setFirstName(employee.getFirstName());
-		toSave.setLastName(employee.getLastName());
-		toSave.setJob(j);
-		toSave.setSalary(employee.getSalary());
-		toSave.setDepartment(deptServ.getOne(employee.getDepartmentID()));
-		toSave.setPhoneNumber(employee.getPhoneNumber());
-		
-		this.employeeService.saveOrUpdate(toSave);
-		r.setEmpList(toDTO(this.employeeService.getAll()));
-		r.setMessage("create successful");
-		return r;
-	}
-	
-	private List<EmployeeDTO> toDTO(List<Employees> e){
-		List<EmployeeDTO> a = new ArrayList<EmployeeDTO>();
-		for(Employees b : e){
-			EmployeeDTO c = new EmployeeDTO();
-			c.setFirstName(b.getFirstName());
-			c.setLastName(b.getLastName());
-			c.setEmail(b.getEmail());
-			c.setDepartmentID(b.getDepartment().getDepartmentId());
-			c.setPhoneNumber(b.getPhoneNumber());
-			c.setHireDate(b.getHireDate());
-			c.setJobID(b.getJob().getJobID());
-			c.setCommissionPercent(b.getCommissionPercent());
-			a.add(c);
+		e.setFirstName((String) map.get("firstName"));
+		e.setLastName((String) map.get("lastName"));
+		String email = (String) (map.get("firstName").toString().substring(0, 1).toUpperCase() + map.get("lastName").toString().toUpperCase());
+		if(!email.equals(e.getEmail())){
+			e.setEmail(email);
 		}
-		return a;
-	}
-	
-	@RequestMapping("/update")
-	String update(@RequestParam("id") Long empId, Model model) throws ParseException{
-		Employees current = this.employeeService.getbyID(empId);
-		EmployeeDTO emp = new EmployeeDTO();
-		emp.setID(current.getEmployeeId());
-		emp.setFirstName(current.getFirstName());
-		emp.setLastName(current.getLastName());
-		emp.setPhoneNumber(current.getPhoneNumber());
-		emp.setSalary(current.getSalary());
-		emp.setDepartmentID(current.getDepartment().getDepartmentId());
-		emp.setHireDate(current.getHireDate());
-		emp.setJobTitle(current.getJob().getJobTitle());
-		emp.setJobID(current.getJob().getJobID());
-		emp.setEmail(current.getEmail());
+		e.setPhoneNumber((String) map.get("phone"));
+		e.setHireDate(new Date());
+		id=((Integer) map.get("departmentID")).longValue();
+		e.setDepartment(this.deptServ.getOne(id));
 		
-		List<JobDTO> j = misc.getJobs();
-		List<DepartmentDTO> d = deptServ.getDepartments();
-		model.addAttribute("jobs", j);
-		model.addAttribute("departments", d);
-		model.addAttribute("employee", emp);
-		return "update";
+		try{
+			this.employeeService.saveOrUpdate(e);
+			r.setMessage("Success");
+			ArrayList<EmployeeDTO> a = new ArrayList<EmployeeDTO>();
+			a.add(toDTO(e));
+			r.setEmpList(a);
+		}catch (Exception ex){
+			ex.printStackTrace();
+			r.setMessage("Failed");
+		}
+		return r;
 	}
-	
-	@ModelAttribute("employee")
-	public EmployeeDTO getEmpDto(){
-		return new EmployeeDTO();
-	}
-	
-	@RequestMapping("/update-save")
-	ReturnMessage updateSave(@ModelAttribute("employee") EmployeeDTO dto, BindingResult b, Model model) throws ParseException{
-		createAndSave(dto);
+	//Delete
+	@RequestMapping(value="/delete", method=RequestMethod.POST, produces="application/json", consumes="application/json")
+	public Object delete(@RequestBody Map<String, Long> map){
 		ReturnMessage r = new ReturnMessage();
-		r.setEmpList(toDTO(this.employeeService.getAll()));
-		r.setMessage("List Updated");
+		try{
+			this.employeeService.deleteEmployee(map.get("id"));
+			r.setMessage("Success");
+		}catch(Exception e){
+			e.printStackTrace();
+			r.setMessage("Failed");
+		}
 		return r;
 	}
 	
-	private void createAndSave(EmployeeDTO emp) throws ParseException{
-		//any fields that weren't changed will be same as the one in storage
-		Employees toSave=this.employeeService.getbyID(emp.getID());
-		//create job from job dto
-		Job j = new Job();
-		JobDTO setFrom = this.misc.getJobDTOByID(emp.getJobID());
-		j.setJobID(setFrom.getJobID());
-		j.setJobTitle(setFrom.getJobTitle());
-		j.setMaxSalary(setFrom.getMaxSalary());
-		j.setMinSalary(setFrom.getMinSalary());
+	private EmployeeDTO toDTO(Employees e) throws Exception{
+		EmployeeDTO toReturn= new EmployeeDTO();
 		
-		//create the new employee
-		toSave.setFirstName(emp.getFirstName());
-		toSave.setLastName(emp.getLastName());
-		toSave.setPhoneNumber(emp.getPhoneNumber());
-		toSave.setJob(j);
-		toSave.setDepartment(this.deptServ.getOne(emp.getDepartmentID()));
-		toSave.setSalary(emp.getSalary());
-		this.employeeService.saveOrUpdate(toSave);
-	}
-	
-	@RequestMapping("/delete")
-	String delete(@RequestParam("id") Long ID){
-		this.employeeService.deleteEmployee(ID);
-		ReturnMessage r = new ReturnMessage();
-		r.setEmpList(toDTO(this.employeeService.getAll()));
-		r.setMessage("Deleted");
-		String jsonString = new Gson().toJson(r.getEmpList());
-		return jsonString;
-	}
-	
-	@RequestMapping("/logout")
-	String logout(){
-		this.currentUser.setPassword(null);
-		this.currentUser.setId(null);
-		this.currentUser.setUsername(null);
-		return "redirect:/login";
+		toReturn.setFirstName(e.getFirstName());
+		toReturn.setLastName(e.getLastName());
+		toReturn.setEmail(e.getEmail());
+		toReturn.setHireDate(e.getHireDate());
+		if(e.getDepartment()!=null){
+			toReturn.setDepartmentID(e.getDepartment().getDepartmentId());
+		}
+		else{
+			toReturn.setDepartmentID((long)000);
+		}
+		toReturn.setPhoneNumber(e.getPhoneNumber());
+		toReturn.setID(e.getEmployeeId());
+		toReturn.setJobID(e.getJob().getJobID());
+		toReturn.setJobTitle(e.getJob().getJobTitle());
+		return toReturn;
 	}
 }

@@ -28,4 +28,12 @@ public class MiscServiceImpl implements MiscService {
 	public JobDTO getJobDTOByID(String ID) {
 		return m.getJobByID(ID);
 	}
+
+	@Override
+	@Transactional(readOnly=true)
+	public JobDTO getJobByTitle(String title) {
+		return m.getJobByTitle(title);
+	}
+	
+	
 }

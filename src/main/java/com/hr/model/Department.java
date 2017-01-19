@@ -65,7 +65,7 @@ public class Department {
 		Manager = manager;
 	}
 	
-	@OneToMany(cascade = CascadeType.ALL)
+	@OneToMany(mappedBy="department", cascade = CascadeType.ALL)
 	@JsonBackReference
 	public List<Employees> getDeptEmployees() {
 		return deptEmployees;

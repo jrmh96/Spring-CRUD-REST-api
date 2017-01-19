@@ -9,5 +9,6 @@ public interface MiscService {
 	
 	JobDTO getJobDTOByID(String ID);
 	
+	JobDTO getJobByTitle(String Title);
 }
 
